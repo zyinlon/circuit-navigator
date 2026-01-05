@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - 智能车辆电路图导航助手</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 使用与login.html相同的样式 */
+        .auth-container {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 40px;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .auth-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .auth-header h2 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .auth-form .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .auth-form label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .auth-form input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        .auth-form input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .auth-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .auth-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .auth-links {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+        
+        .auth-links a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .auth-links a:hover {
+            text-decoration: underline;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            font-size: 0.9rem;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .success-message {
+            color: #27ae60;
+            font-size: 0.9rem;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            font-style: italic;
+        }
+        
+        .password-strength {
+            margin-top: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .strength-weak { color: #e74c3c; }
+        .strength-medium { color: #f39c12; }
+        .strength-strong { color: #27ae60; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-car-alt"></i> 智能车辆电路图导航助手</h1>
+            <p class="subtitle">注册账号以保存您的搜索历史</p>
+        </header>
+        
+        <div class="auth-container">
+            <div class="auth-header">
+                <h2>用户注册</h2>
+                <p>请填写注册信息</p>
+            </div>
+            
+            <form class="auth-form" id="registerForm">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" name="username" required>
+                    <div class="error-message" id="usernameError"></div>
+                    <div class="password-strength">用户名长度3-20个字符，只能包含字母、数字、下划线</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">邮箱</label>
+                    <input type="email" id="email" name="email" required>
+                    <div class="error-message" id="emailError"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" name="password" required>
+                    <div class="error-message" id="passwordError"></div>
+                    <div class="password-strength" id="passwordStrength"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirmPassword">确认密码</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required>
+                    <div class="error-message" id="confirmPasswordError"></div>
+                </div>
+                
+                <button type="submit" class="auth-btn">注册</button>
+                
+                <div class="loading" id="loading">
+                    <i class="fas fa-spinner fa-spin"></i> 正在注册...
+                </div>
+                
+                <div class="error-message" id="formError"></div>
+                <div class="success-message" id="formSuccess"></div>
+            </form>
+            
+            <div class="auth-links">
+                <p>已有账号？ <a href="{{ url_for('login') }}">立即登录</a></p>
+                <p><a href="{{ url_for('index') }}">返回首页</a></p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 密码强度检查
+        document.getElementById('password').addEventListener('input', function() {
+            const password = this.value;
+            const strengthDiv = document.getElementById('passwordStrength');
+            
+            if (password.length === 0) {
+                strengthDiv.textContent = '';
+                return;
+            }
+            
+            let strength = 'weak';
+            if (password.length >= 8) {
+                if (/[A-Z]/.test(password) && /[0-9]/.test(password) && /[^A-Za-z0-9]/.test(password)) {
+                    strength = 'strong';
+                } else if (password.length >= 10) {
+                    strength = 'medium';
+                }
+            } else if (password.length >= 6) {
+                strength = 'medium';
+            }
+            
+            strengthDiv.textContent = `密码强度: ${strength === 'weak' ? '弱' : strength === 'medium' ? '中等' : '强'}`;
+            strengthDiv.className = `password-strength strength-${strength}`;
+        });
+        
+        // 注册表单提交
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            // 清除之前的错误信息
+            clearErrors();
+            
+            // 验证输入
+            let valid = true;
+            
+            if (username.length < 3 || username.length > 20) {
+                showError('usernameError', '用户名长度必须在3-20个字符之间');
+                valid = false;
+            } else if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                showError('usernameError', '用户名只能包含字母、数字和下划线');
+                valid = false;
+            }
+            
+            if (!email.includes('@')) {
+                showError('emailError', '请输入有效的邮箱地址');
+                valid = false;
+            }
+            
+            if (password.length < 6) {
+                showError('passwordError', '密码长度至少为6个字符');
+                valid = false;
+            }
+            
+            if (password !== confirmPassword) {
+                showError('confirmPasswordError', '两次输入的密码不一致');
+                valid = false;
+            }
+            
+            if (!valid) return;
+            
+            // 显示加载状态
+            document.getElementById('loading').style.display = 'block';
+            
+            // 发送注册请求
+            fetch('/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: username,
+                    email: email,
+                    password: password
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading').style.display = 'none';
+                
+                if (data.success) {
+                    // 注册成功，跳转到首页
+                    showSuccess('注册成功，正在跳转...');
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                } else {
+                    // 显示错误信息
+                    showError('formError', data.message || '注册失败');
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                showError('formError', '网络错误，请检查网络连接');
+                console.error('Error:', error);
+            });
+        });
+        
+        function clearErrors() {
+            const errors = document.querySelectorAll('.error-message');
+            errors.forEach(error => {
+                error.style.display = 'none';
+                error.textContent = '';
+            });
+            
+            const success = document.getElementById('formSuccess');
+            success.style.display = 'none';
+            success.textContent = '';
+        }
+        
+        function showError(elementId, message) {
+            const errorDiv = document.getElementById(elementId);
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+        
+        function showSuccess(message) {
+            const successDiv = document.getElementById('formSuccess');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

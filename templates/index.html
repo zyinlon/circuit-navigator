@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能车辆电路图导航助手</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-car-alt"></i> 智能车辆电路图导航助手</h1>
+            <p class="subtitle">通过自然语言对话快速定位车辆电路图文档</p>
+            
+            <!-- 用户信息（登录后显示） -->
+            <div class="user-info" style="position: absolute; top: 20px; right: 30px; color: white; display: none;" id="userInfo">
+                <span id="usernameDisplay"></span>
+                <button id="historyBtn" class="user-btn" style="margin-left: 10px; padding: 5px 10px; background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 5px; cursor: pointer;">
+                    <i class="fas fa-history"></i> 历史对话
+                </button>
+                <button id="logoutBtn" class="user-btn" style="margin-left: 5px; padding: 5px 10px; background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 5px; cursor: pointer;">
+                    <i class="fas fa-sign-out-alt"></i> 退出
+                </button>
+            </div>
+            
+            <!-- 登录注册按钮（未登录显示） -->
+            <div class="login-register" style="position: absolute; top: 20px; right: 30px; color: white; display: none;" id="loginRegister">
+                <button id="loginBtn" class="user-btn" style="padding: 5px 10px; background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 5px; cursor: pointer;">
+                    <i class="fas fa-sign-in-alt"></i> 登录
+                </button>
+                <button id="registerBtn" class="user-btn" style="margin-left: 5px; padding: 5px 10px; background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 5px; cursor: pointer;">
+                    <i class="fas fa-user-plus"></i> 注册
+                </button>
+            </div>
+        </header>
+        
+        <div class="chat-container">
+            <div class="chat-history" id="chatHistory">
+                <div class="welcome-message">
+                    <h3>欢迎使用车辆电路图导航助手！</h3>
+                    <p>您可以这样问我：</p>
+                    <ul>
+                        <li>"我要一个东风天龙的仪表图"</li>
+                        <li>"找一下三一挖掘机的电路图"</li>
+                        <li>"徐工XE135G的针脚定义"</li>
+                        <li>"红岩杰狮保险丝图纸"</li>
+                    </ul>
+                    <p>我会通过对话帮您精确找到所需的电路图。</p>
+                </div>
+            </div>
+            
+            <div class="input-container">
+                <div class="options-container" id="optionsContainer"></div>
+                
+                <div class="input-group">
+                    <button id="backButton" class="action-btn back-btn" title="返回上一步">
+                        返回上一步
+                    </button>
+                    <input type="text" 
+                           id="messageInput" 
+                           placeholder="请输入您的需求，例如：我要找东风天龙的仪表图..." 
+                           autocomplete="off">
+                    <button id="sendButton" class="action-btn send-btn">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                    <button id="fuzzyMatchButton" class="action-btn fuzzy-match-btn" title="模糊匹配修正">
+                        <i class="fas fa-magic"></i> 模糊匹配
+                    </button>
+                    <button id="showResultsButton" class="action-btn show-results-btn" title="查看当前所有结果">
+                        <i class="fas fa-list"></i> 查看结果
+                    </button>
+                    <button id="saveConversationBtn" class="action-btn save-conversation-btn" title="保存当前对话" style="display: none;">
+                        <i class="fas fa-save"></i> 保存对话
+                    </button>
+                    <button id="resetButton" class="action-btn reset-btn" title="重置对话">
+                        重置
+                    </button>
+                </div>
+                
+                <div class="tips">
+                    <p><i class="fas fa-lightbulb"></i> 提示：当您不确定准确表述时，可以使用"模糊匹配"功能;选择选项直接点击即可；当结果大于5条是请耐心等待大模型分析推理设置引导对话，您也可以直接点击“查看结果”参考当前所有结果。</p>
+                </div>
+            </div>
+        </div>
+        
+        <footer class="footer">
+            <p>智能车辆电路图导航系统 | 基于大语言模型的多轮对话检索</p>
+        </footer>
+    </div>
+    
+    <!-- 模糊匹配模态窗口 -->
+    <div id="fuzzyMatchModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-magic"></i> 模糊匹配修正</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="original-query">
+                    <h4>原始查询：</h4>
+                    <p id="originalQueryText"></p>
+                </div>
+                <div class="corrected-query">
+                    <h4>修正后查询：</h4>
+                    <p id="correctedQueryText"></p>
+                </div>
+                <div class="explanation">
+                    <h4>修正说明：</h4>
+                    <p id="explanationText"></p>
+                </div>
+                <div class="confidence">
+                    <h4>置信度：</h4>
+                    <p id="confidenceText"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="useCorrectedBtn" class="modal-btn confirm-btn">
+                    <i class="fas fa-check"></i> 使用修正后查询
+                </button>
+                <button id="cancelBtn" class="modal-btn cancel-btn">
+                    <i class="fas fa-times"></i> 取消
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 历史对话模态窗口 -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-history"></i> 历史对话</h3>
+                <span class="close-history-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="historyList" style="max-height: 400px; overflow-y: auto;">
+                    正在加载历史对话...
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 保存对话模态窗口 -->
+    <div id="saveConversationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-save"></i> 保存对话</h3>
+                <span class="close-save-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="conversationTitle">对话标题：</label>
+                    <input type="text" id="conversationTitle" placeholder="请输入对话标题" style="width: 100%; padding: 10px; margin-top: 5px;">
+                    <div id="titleError" class="error-message" style="color: red; margin-top: 5px; display: none;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="confirmSaveBtn" class="modal-btn confirm-btn">
+                    <i class="fas fa-save"></i> 保存
+                </button>
+                <button id="cancelSaveBtn" class="modal-btn cancel-btn">
+                    <i class="fas fa-times"></i> 取消
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
